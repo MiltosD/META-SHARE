@@ -677,7 +677,7 @@ class ResourceModelAdmin(SchemaModelAdmin):
     remove_owner.short_description = _("Remove owners from selected resources")
 
     def get_urls(self):
-        from django.conf.urls import patterns, url
+        from django.conf.urls import url
         urlpatterns = super(ResourceModelAdmin, self).get_urls()
 
         def wrap(view):
@@ -687,7 +687,7 @@ class ResourceModelAdmin(SchemaModelAdmin):
 
         info = self.model._meta.app_label, self.model._meta.model_name
         
-        urlpatterns = patterns('',
+        urlpatterns = [
             url(r'^(.+)/upload-data/$',
                 wrap(self.uploaddata_view),
                 name='%s_%s_uploaddata' % info),
@@ -697,7 +697,7 @@ class ResourceModelAdmin(SchemaModelAdmin):
             url(r'^(.+)/export-xml/$',
                 wrap(self.exportxml),
                 name='%s_%s_exportxml' % info),
-        ) + urlpatterns
+        ] + urlpatterns
         return urlpatterns
 
     @csrf_protect_m

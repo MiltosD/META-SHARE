@@ -12,7 +12,7 @@ if __name__ == "__main__":
         command = sys.argv[1]
         if command in fail_early_commands:
             django.setup()
-            from metashare.repository import verify_at_startup
+            from metashare.repository.init import verify_at_startup
             verify_at_startup() # may raise Exception, which we don't want to catch.
 
     from django.core.management import execute_from_command_line

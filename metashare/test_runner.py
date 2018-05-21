@@ -20,7 +20,8 @@ def _run_custom_test_db_setup():
     MetashareRouter.in_test_mode = True
     # clear the test index
     clear_index.Command().handle(interactive=False,
-                                 using=[settings.TEST_MODE_NAME,])
+                                 using=[settings.TEST_MODE_NAME, ])
+
 
 class MetashareTestRunner(SeleniumTestRunner):
     """
@@ -31,6 +32,7 @@ class MetashareTestRunner(SeleniumTestRunner):
     provided by Django/Selenium is that the runner automatically sets up
     Haystack so that it uses a dedicated search backend for testing.
     """
+
     def setup_databases(self, **kwargs):
         _run_custom_test_db_setup()
         # run the normal Django test setup

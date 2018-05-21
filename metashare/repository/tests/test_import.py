@@ -15,6 +15,7 @@ from metashare.settings import DJANGO_BASE, ROOT_PATH, LOG_HANDLER
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(LOG_HANDLER)
 
+
 class ImportTest(TestCase):
     """
     Tests the import procedure for resources

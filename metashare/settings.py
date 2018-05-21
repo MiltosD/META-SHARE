@@ -1,4 +1,5 @@
 from os.path import abspath, dirname
+
 ROOT_PATH = abspath(dirname(__file__))
 
 import os
@@ -26,10 +27,10 @@ CHECK_FOR_DUPLICATE_INSTANCES = True
 # RotatingFileHandler there
 if os.name == "posix":
     LOG_HANDLER = RotatingFileHandler(filename=LOG_FILENAME, mode="a",
-        maxBytes=1024*1024, backupCount=5, encoding="utf-8")
+                                      maxBytes=1024 * 1024, backupCount=5, encoding="utf-8")
 else:
     LOG_HANDLER = logging.FileHandler(filename=LOG_FILENAME, mode="a",
-        encoding="utf-8")
+                                      encoding="utf-8")
 LOG_HANDLER.setLevel(level=LOG_LEVEL)
 LOG_HANDLER.setFormatter(LOG_FORMATTER)
 
@@ -77,7 +78,7 @@ KNOWLEDGE_BASE_URL = 'http://www.meta-share.org/knowledgebase/'
 STATS_SERVER_URL = "http://metastats.fbk.eu/"
 
 # The URL for GeoIP database.
-GEOIP_DATA_URL = "http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz" 
+GEOIP_DATA_URL = "http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz"
 
 # If STORAGE_PATH does not exist, try to create it and halt if not
 # possible.
@@ -124,7 +125,7 @@ USE_I18N = True
 
 STATIC_URL = '/static/'
 
-STATICFILES_DIRS = ( '{0}/static/'.format(ROOT_PATH),)
+STATICFILES_DIRS = ('{0}/static/'.format(ROOT_PATH),)
 
 TEMPLATE_LOADERS = (
     ('django.template.loaders.cached.Loader', (
@@ -142,23 +143,28 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = 'metashare.urls'
 
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-    '{0}/templates'.format(ROOT_PATH),
-)
+# TEMPLATE_DIRS = (
+#     # Put strings here, like "/home/html/django_templates".
+#     # Always use forward slashes, even on Windows.
+#     # Don't forget to use absolute paths, not relative paths.
+#     '{0}/templates'.format(ROOT_PATH),
+# )
 
-TEMPLATE_CONTEXT_PROCESSORS = (
-    "django.contrib.auth.context_processors.auth",
-    "django.core.context_processors.debug",
-    "django.core.context_processors.i18n",
-    "django.core.context_processors.media",
-    "django.core.context_processors.static",
-    "django.core.context_processors.tz",
-    "django.contrib.messages.context_processors.messages",
-    "django.core.context_processors.request",
-)
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(ROOT_PATH, 'templates')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
 
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
@@ -176,13 +182,13 @@ INSTALLED_APPS = (
     'selectable',
     'haystack',
     'analytical',
-    
+    #
+    'metashare.repository',
     'metashare.accounts',
     'metashare.storage',
     'metashare.sync',
     'metashare.stats',
     'metashare.recommendations',
-    'metashare.repository',
     'metashare.bcp47',
 )
 
@@ -211,7 +217,7 @@ HAYSTACK_SIGNAL_PROCESSOR = 'metashare.repository.signals.PatchedSignalProcessor
 
 # we use a custom Haystack search backend router so that we can dynamically
 # switch between the main/default search backend and the one for testing
-HAYSTACK_ROUTERS = [ 'metashare.haystack_routers.MetashareRouter' ]
+HAYSTACK_ROUTERS = ['metashare.haystack_routers.MetashareRouter']
 
 # a custom test runner with the added value on top of the default Django test
 # runner to automatically set up Haystack so that it uses a dedicated search
@@ -223,8 +229,9 @@ PYLINT_RCFILE = '{0}/test-config/pylint.rc'.format(ROOT_PATH)
 # set display for Selenium tests
 if 'DISPLAY' in os.environ:
     import re
-    SELENIUM_DISPLAY = re.sub(r'[^\:]*(\:\d{1,2})(?:\.\d+)?', r'\1', 
-      os.environ['DISPLAY'])
+
+    SELENIUM_DISPLAY = re.sub(r'[^\:]*(\:\d{1,2})(?:\.\d+)?', r'\1',
+                              os.environ['DISPLAY'])
 
 # sitemap url to be used in "robots.txt"
 SITEMAP_URL = '{}/sitemap.xml'.format(DJANGO_URL)
@@ -260,14 +267,15 @@ MIGRATION_MODULES = {
     'storage': 'metashare.storage.django_migrations',
 }
 
-class DisableMigrations(object):
 
+class DisableMigrations(object):
     def __contains__(self, item):
         return True
 
     def __getitem__(self, item):
-        return "notmigrations"
-    
+        return None
+
+
 TESTS_IN_PROGRESS = False
 if 'test' in sys.argv[1:]:
     logging.disable(logging.CRITICAL)
@@ -278,4 +286,3 @@ if 'test' in sys.argv[1:]:
     TEMPLATE_DEBUG = DEBUG
     TESTS_IN_PROGRESS = True
     MIGRATION_MODULES = DisableMigrations()
-    

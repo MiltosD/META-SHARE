@@ -113,12 +113,12 @@ class DocumentUnstructuredStringModelAdmin(admin.ModelAdmin, RelatedAdminMixin):
         We customize this to allow closing edit popups in the same way
         as response_add deals with add popups.
         '''
-        if IS_POPUP_O2M_VAR in request.REQUEST:
+        if IS_POPUP_O2M_VAR in request.POST:
             caller = None
-            if '_caller' in request.REQUEST:
-                caller = request.REQUEST['_caller']
+            if '_caller' in request.POST:
+                caller = request.POST['_caller']
             return self.edit_response_close_popup_magic_o2m(obj, caller)
-        if IS_POPUP_VAR in request.REQUEST:
+        if IS_POPUP_VAR in request.POST:
             if request.POST.has_key("_continue"):
                 return self.save_and_continue_in_popup(obj, request)
             return self.edit_response_close_popup_magic(obj)
@@ -208,13 +208,13 @@ class DocumentUnstructuredStringModelAdmin(admin.ModelAdmin, RelatedAdminMixin):
         for inline_formset in inline_formsets:
             media = media + inline_formset.media
 
-        context = dict(self.admin_site.each_context(),
+        context = dict(self.admin_site.each_context(request),
             title=(_('Add %s') if add else _('Change %s')) % force_text(opts.verbose_name),
             adminform=adminForm,
             object_id=object_id,
             original=obj,
-            is_popup=(IS_POPUP_VAR in request.REQUEST or \
-                      IS_POPUP_O2M_VAR in request.REQUEST),
+            is_popup=(IS_POPUP_VAR in request.POST or \
+                      IS_POPUP_O2M_VAR in request.POST),
             to_field=to_field,
             media=media,
             inline_admin_formsets=inline_formsets,

@@ -10,7 +10,7 @@ from django import forms
 from django.contrib.admin.widgets import RelatedFieldWidgetWrapper, \
     AdminTextInputWidget
 from django.forms import widgets, TextInput, Textarea, Media, Select
-from django.forms.util import flatatt
+from django.forms.utils import flatatt
 from django.template.loader import render_to_string
 from django.utils.encoding import force_unicode
 from django.utils.http import urlencode

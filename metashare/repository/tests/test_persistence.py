@@ -21,6 +21,7 @@ LOGGER.addHandler(LOG_HANDLER)
 
 TESTFIXTURE_XML = '{}/repository/fixtures/ILSP10.xml'.format(ROOT_PATH)
 
+
 def copy_fixtures():
     """
     Copies the test fixtures to the storage folder.
@@ -30,6 +31,7 @@ def copy_fixtures():
         shutil.copytree(
           os.path.join(_fixture_folder, fixture_name),
           os.path.join(settings.STORAGE_PATH, fixture_name))
+
           
 class PersistenceTest(TestCase):
     """

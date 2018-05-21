@@ -1,6 +1,6 @@
 import logging
 
-from django.db.models import get_models, signals
+from django.db.models import signals
 from metashare.sync import models as sync_models
 from metashare.sync.management.commands.createsyncuser import \
     grant_sync_permissions
@@ -40,5 +40,5 @@ def create_syncuser(app, created_models, verbosity, **kwargs):
 from django.contrib.auth import management
 
 
-signals.post_syncdb.connect(create_syncuser,
+signals.post_migrate.connect(create_syncuser,
     sender=sync_models, dispatch_uid = "metashare.sync.management.create_syncuser")

@@ -12,7 +12,7 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist, \
     ImproperlyConfigured
 from django.db import models, IntegrityError
 from django.db.models.fields import related
-from django.db.models.fields.related import ForeignRelatedObjectsDescriptor, \
+from django.db.models.fields.related import ReverseManyToOneDescriptor, \
     OneToOneField
 
 import metashare.repository.models
@@ -211,8 +211,8 @@ class SchemaModel(models.Model):
             return field.verbose_name
         except:
             remote = getattr(cls, fieldname, None)
-            if isinstance(remote, ForeignRelatedObjectsDescriptor):
-                return remote.related.model._meta.verbose_name
+            if isinstance(remote, ReverseManyToOneDescriptor):
+                return remote.rel.model._meta.verbose_name
             return fieldname
 
     @classmethod

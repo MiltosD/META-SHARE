@@ -156,6 +156,7 @@ class SearchIndexUpdateTests(test_utils.IndexAwareTestCase):
           "have changed and contain that resource.")
         return resource
 
+
 class SearchTest(test_utils.IndexAwareTestCase):
     """
     Test the search functionality

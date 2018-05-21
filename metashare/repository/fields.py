@@ -78,7 +78,12 @@ class MultiTextField(models.Field):
     MultiTextField value(s) to a Python list of Strings during runtime.
     
     """
-    __metaclass__ = models.SubfieldBase
+
+    def from_db_value(self, value, expression, connection, context):
+        if value is None:
+            return value
+        return pickle.loads(base64.b64decode(value))
+
     default_error_messages = {
         # pylint: disable-msg=E1102
         'too_long': _(u'A single field must be at most {0} characters long '
@@ -211,7 +216,11 @@ class MultiSelectField(models.Field):
     """
     Model field which allows to select one or several choices.
     """
-    __metaclass__ = models.SubfieldBase
+
+    def from_db_value(self, value, expression, connection, context):
+        if value is None:
+            return value
+        return pickle.loads(base64.b64decode(value))
 
     # Maps 1-digit hexadecimal numbers to their corresponding bit quadruples.
     __HEX_TO_BITS__ = {
@@ -420,7 +429,12 @@ class DictField(models.Field):
     determines the default value; see the constructor documentation for more
     information.
     """
-    __metaclass__ = models.SubfieldBase
+
+    def from_db_value(self, value, expression, connection, context):
+        if value is None:
+            return value
+        return pickle.loads(base64.b64decode(value))
+
     default_error_messages = {
         # pylint: disable-msg=E1102
         'key_too_long': _(u'A key must be at most {1} characters long, "{0}" '

@@ -13,6 +13,7 @@ from haystack.management.commands import update_index
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(LOG_HANDLER)
 
+
 class SpecialQueryTest(django.test.TestCase):
 
     # test resources to be initialized in setup

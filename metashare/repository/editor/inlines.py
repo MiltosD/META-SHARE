@@ -41,7 +41,7 @@ class SchemaModelInline(InlineModelAdmin, RelatedAdminMixin, SchemaModelLookup):
         return formfield
 
     def response_change(self, request, obj):
-        if IS_POPUP_VAR in request.REQUEST:
+        if IS_POPUP_VAR in request.POST:
             return self.edit_response_close_popup_magic(obj)
         else:
             return super(SchemaModelInline, self).response_change(request, obj)
@@ -207,8 +207,8 @@ class ReverseInlineModelAdmin(SchemaModelInline):
         super(ReverseInlineModelAdmin, self).__init__(parent_model, admin_site)
 
     def get_formset(self, request, obj = None, **kwargs):
-        if self.declared_fieldsets:
-            fields = flatten_fieldsets(self.declared_fieldsets)
+        if self.fieldsets:
+            fields = flatten_fieldsets(self.fieldsets)
         else:
             fields = None
         if self.exclude is None:

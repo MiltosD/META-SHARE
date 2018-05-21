@@ -1,5 +1,6 @@
 import logging
 import requests
+import json
 
 from datetime import datetime
 from os.path import split, getsize
@@ -522,7 +523,7 @@ def view(request, resource_name=None, object_id=None):
             if media_type == "text":
                 resource_component_dicts['text'] = \
                   resource_component_dict['Resource_component_type'] \
-                      ['Media_type_component_of_corpus']['Corpus_text']
+                      ['Media_type_component_of_corpus']['Media_type_component_of_corpus']['Corpus_text']
             if media_type == "audio":
                 resource_component_dicts['audio'] = \
                   resource_component_dict['Resource_component_type'] \
@@ -530,7 +531,7 @@ def view(request, resource_name=None, object_id=None):
             if media_type == "video":
                 resource_component_dicts['video'] = \
                   resource_component_dict['Resource_component_type'] \
-                      ['Media_type_component_of_corpus']['Corpus_video']
+                      ['Media_type_component_of_corpus']['Media_type_component_of_corpus']['Corpus_video']
             if media_type == "image":
                 resource_component_dicts['image'] = \
                   resource_component_dict['Resource_component_type'] \

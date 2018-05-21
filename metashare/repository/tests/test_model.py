@@ -18,6 +18,7 @@ from metashare.xml_utils import to_xml_string
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(LOG_HANDLER)
 
+
 class ModelTest(TestCase):
     """
     Tests the import/export properties of the generated object model.

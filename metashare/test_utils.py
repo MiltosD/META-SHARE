@@ -13,7 +13,7 @@ from metashare.accounts.models import EditorGroupApplication, EditorGroup, \
     OrganizationApplication, OrganizationManagers, Organization
 from metashare.recommendations.models import TogetherManager
 from metashare.repository import supermodel
-from metashare.repository.management import GROUP_GLOBAL_EDITORS
+import metashare.repository.management as repo_mng
 from metashare.repository.models import resourceInfoType_model, \
     personInfoType_model, actorInfoType_model, documentationInfoType_model, \
     documentInfoType_model, targetResourceInfoType_model, organizationInfoType_model, \
@@ -27,12 +27,14 @@ from haystack.management.commands import update_index
 
 TEST_STORAGE_PATH = '{0}/test-tmp'.format(settings.ROOT_PATH)
 
+
 def setup_test_storage():
     settings.STORAGE_PATH = TEST_STORAGE_PATH
     try:
         os.mkdir(settings.STORAGE_PATH)
     except:
         pass
+
 
 def clean_resources_db():
     """
@@ -47,8 +49,8 @@ def clean_resources_db():
     for ait in actorInfoType_model.objects.all():
         ait.delete()
     for dmntit in documentationInfoType_model.objects.all():
-        dmntit.delete() 
-    for docit in documentInfoType_model.objects.all(): 
+        dmntit.delete()
+    for docit in documentInfoType_model.objects.all():
         docit.delete()
     for persit in personInfoType_model.objects.all():
         persit.delete()
@@ -64,6 +66,7 @@ def clean_resources_db():
     # delete object cache used for duplicate recognition in import
     supermodel.OBJECT_XML_CACHE = {}
 
+
 def clean_user_db():
     """
     Deletes all user and group related entities from the database.
@@ -74,11 +77,12 @@ def clean_user_db():
     OrganizationApplication.objects.all().delete()
     OrganizationManagers.objects.all().delete()
     Organization.objects.all().delete()
-    Group.objects.exclude(name=GROUP_GLOBAL_EDITORS).delete()
+    Group.objects.exclude(name=repo_mng.GROUP_GLOBAL_EDITORS).delete()
     RegistrationRequest.objects.all().delete()
     ResetRequest.objects.all().delete()
     UserProfile.objects.all().delete()
     User.objects.all().delete()
+
 
 def clean_stats():
     """
@@ -87,6 +91,7 @@ def clean_stats():
     LRStats.objects.all().delete()
     UsageStats.objects.all().delete()
     QueryStats.objects.all().delete()
+
 
 def clean_storage():
     """
@@ -99,10 +104,12 @@ def clean_storage():
                 os.remove(os.path.join(settings.STORAGE_PATH, _folder, _file))
             os.rmdir(os.path.join(settings.STORAGE_PATH, _folder))
 
+
 def create_user(username, email, password):
     user, _ = User.objects.get_or_create(username=username, email=email)
     user.set_password(password)
     return user
+
 
 def get_client_with_user_logged_in(user_credentials):
     client = Client()
@@ -110,8 +117,9 @@ def get_client_with_user_logged_in(user_credentials):
     response = client.post(LOGIN_URL, user_credentials)
     if response.status_code != 302:
         raise Exception, 'could not log in user with credentials: {}\n' \
-            'response was: {}'.format(user_credentials, response)
+                         'response was: {}'.format(user_credentials, response)
     return client
+
 
 def import_xml(filename, copy_status=MASTER):
     """
@@ -122,9 +130,11 @@ def import_xml(filename, copy_status=MASTER):
     _xml.close()
     return xml_utils.import_from_string(_xml_string, INTERNAL, copy_status)
 
+
 def import_xml_or_zip(filename, copy_status=MASTER):
     _xml = open(filename, 'rb')
     return import_from_file(_xml, filename, PUBLISHED, copy_status)
+
 
 def set_index_active(is_active):
     """
@@ -133,6 +143,7 @@ def set_index_active(is_active):
     """
     os.environ['DISABLE_INDEXING_DURING_IMPORT'] = str(bool(not is_active))
 
+
 def create_manager_user(user_name, email, password, groups=None):
     """
     Creates a new managing editor user account with the given credentials and
@@ -140,7 +151,7 @@ def create_manager_user(user_name, email, password, groups=None):
     """
     result = create_editor_user(user_name, email, password, groups)
     for _perm in EditorGroupManagersAdmin.get_suggested_manager_permissions():
-        result.user_permissions.add(_perm)
+        result.user_permissions.add(*_perm)
     return result
 
 
@@ -156,9 +167,11 @@ def create_editor_user(user_name, email, password, groups=None):
         for group in groups:
             result.groups.add(group)
     # always add basic editing permissions
-    result.groups.add(Group.objects.get(name=GROUP_GLOBAL_EDITORS))
+    repo_mng.setup_group_global_editors()
+    result.groups.add(Group.objects.get(name=repo_mng.GROUP_GLOBAL_EDITORS))
     result.save()
     return result
+
 
 def create_organization_manager_user(user_name, email, password, groups=None):
     """
@@ -169,7 +182,7 @@ def create_organization_manager_user(user_name, email, password, groups=None):
     """
     result = create_organization_member(user_name, email, password, groups)
     for _perm in OrganizationManagersAdmin.get_suggested_organization_manager_permissions():
-        result.user_permissions.add(_perm)
+        result.user_permissions.add(*_perm)
     return result
 
 
@@ -193,12 +206,13 @@ class IndexAwareTestCase(TestCase):
     before and after every test so that it always matches the current database
     state.
     """
+
     def _fixture_setup(self):
         result = super(IndexAwareTestCase, self)._fixture_setup()
-        update_index.Command().handle(using=[settings.TEST_MODE_NAME,])
+        update_index.Command().handle(using=[settings.TEST_MODE_NAME, ])
         return result
 
     def _fixture_teardown(self):
         result = super(IndexAwareTestCase, self)._fixture_teardown()
-        update_index.Command().handle(using=[settings.TEST_MODE_NAME,])
+        update_index.Command().handle(using=[settings.TEST_MODE_NAME, ])
         return result

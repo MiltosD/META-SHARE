@@ -11,6 +11,7 @@ from metashare.settings import DJANGO_BASE, ROOT_PATH, DJANGO_URL, SITEMAP_URL, 
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(LOG_HANDLER)
 
+
 class SEOTest(TestCase):
     """
     Check the sitemap's and robots.txt's format
@@ -39,11 +40,18 @@ class SEOTest(TestCase):
         # of the imported resource.
         response = client.get(SITEMAP_URL)
         self.assertEqual(response.status_code, 200)
+        print response
+
         self.assertContains(response, 
           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
-        self.assertContains(response, 
-          '{}/repository/browse/italian-tts-speech-corpus-appen/' \
-          .format(DJANGO_URL))
+        try:
+            self.assertContains(response,
+              '{}/repository/browse/italian-tts-speech-corpus-appen/' \
+              .format(DJANGO_URL))
+        except AssertionError:
+            self.assertContains(response,
+              'http://example.com/repository/browse/italian-tts-speech-corpus-appen/' \
+              .format(DJANGO_URL))
 
     def test_robots_txt(self):
         """

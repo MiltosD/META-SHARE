@@ -2,7 +2,7 @@ import logging
 from time import sleep
 from django.core.exceptions import ValidationError
 from django.test.client import Client
-from django.utils import unittest
+import unittest
 from metashare.storage.models import StorageObject, _validate_valid_xml, \
     add_or_update_resource, MASTER, REMOTE, PROXY, IllegalAccessException
 from metashare import settings, test_utils

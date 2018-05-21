@@ -13,10 +13,15 @@ from django.core.management.base import BaseCommand
 RE_VALID_USERNAME = re.compile('[\w.@+-]+$')
 
 class Command(BaseCommand):
-    option_list = BaseCommand.option_list + (
-        make_option('--username', dest='username', default=None,
-            help='Specifies the username for the user.'),
-    )
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--username',
+            dest='username',
+            default=None,
+            help='Specifies the username for the user.'
+        )
+
     help = 'Used to create a user with synchronization permissions.'
 
     def handle(self, *args, **options):

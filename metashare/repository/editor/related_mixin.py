@@ -208,12 +208,21 @@ class RelatedAdminMixin(object):
     def list_m2m_fields_without_custom_widget(self, model):
         'List those many-to-many fields which do not have a custom widget'
         h_fields = []
-        for fld in model.get_many_to_many_fields():
-            if hasattr(self.form, 'Meta') and hasattr(self.form.Meta, 'widgets') and fld in self.form.Meta.widgets:
-                pass # field has custom widget, do not include
-            elif model._meta.get_field(fld).rel.to in self.custom_m2m_widget_overrides:
-                pass # field has custom default, do not include
-            else:
-                h_fields.append(fld)
+        try:
+            for fld in model.get_many_to_many_fields():
+                if hasattr(self.form, 'Meta') and hasattr(self.form.Meta, 'widgets') and fld in self.form.Meta.widgets:
+                    pass # field has custom widget, do not include
+                elif model._meta.get_field(fld).rel.to in self.custom_m2m_widget_overrides:
+                    pass # field has custom default, do not include
+                else:
+                    h_fields.append(fld)
+        except AttributeError:
+            for fld in model._meta.local_many_to_many:
+                if hasattr(self.form, 'Meta') and hasattr(self.form.Meta, 'widgets') and fld in self.form.Meta.widgets:
+                    pass # field has custom widget, do not include
+                elif model._meta.get_field(fld).rel.to in self.custom_m2m_widget_overrides:
+                    pass # field has custom default, do not include
+                else:
+                    h_fields.append(fld)
         return h_fields
 

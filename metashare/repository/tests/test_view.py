@@ -30,6 +30,7 @@ from metashare.utils import prettify_camel_case_string
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(LOG_HANDLER)
 
+
 def _import_resource(fixture_name, editor_group=None):
     """
     Imports the XML resource description with the given file name.

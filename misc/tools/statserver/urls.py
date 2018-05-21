@@ -1,13 +1,14 @@
-from django.conf.urls import patterns
+from django.conf.urls import patterns, url
 from django.conf import settings
+from statserver.stats import views
+from django import views as dj_views
 
 # Uncomment the next two lines to enable the admin:
 # from django.contrib import admin
 # admin.autodiscover()
 
-urlpatterns = patterns('',
-	 ( r'^$', 'statserver.stats.views.browse' ),
-	 ( r'^stats/addnode$', 'statserver.stats.views.addnode' ),
-	 ( r'^media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT}),
-)
-
+urlpatterns = [
+    url(r'^$', views.browse),
+    url(r'^stats/addnode$', views.addnode),
+    url(r'^media/(?P<path>.*)$', dj_views.static.serve, {'document_root': settings.MEDIA_ROOT}),
+]

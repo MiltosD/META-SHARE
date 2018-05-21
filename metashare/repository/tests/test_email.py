@@ -8,6 +8,7 @@ from metashare.settings import ROOT_PATH, LOG_HANDLER
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(LOG_HANDLER)
 
+
 class EmailProtectionTest(TestCase):
     """
     Test the picture display instead of the email in plain text

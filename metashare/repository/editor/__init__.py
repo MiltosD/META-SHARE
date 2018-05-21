@@ -35,7 +35,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_unicode
 from django.utils.translation import ugettext as _
@@ -53,15 +53,15 @@ class MetashareBackendSite(AdminSite):
     logout_template = 'repository/editor/logged_out.html'
     
     def get_urls(self):
-        from django.conf.urls import patterns, url
+        from django.conf.urls import url
 
         urls = super(MetashareBackendSite, self).get_urls()
-        urls = patterns('',
+        urls = [
             url(r'^upload_xml/$', self.admin_view(self.upload_xml), name='upload_xml'),
             url(r'^community/$', self.admin_view(self.community), name='community'),
             url(r'^doc/$', self.admin_view(self.documentation), name='documentation'),
             url(r'^about/$', self.admin_view(self.about), name='about'),
-        ) + urls
+        ] + urls
         return urls
 
     @csrf_protect_m
@@ -116,7 +116,7 @@ class MetashareBackendSite(AdminSite):
         }
         context.update(extra_context or {})
         context_instance = template.RequestContext(request, current_app=self.name)
-        return render_to_response(
+        return render(
           ['admin/repository/resourceinfotype_model/upload_description.html'],
           context, context_instance)
 

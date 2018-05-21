@@ -18,6 +18,7 @@ LOGGER.addHandler(LOG_HANDLER)
 
 ADMINROOT = '/{0}editor/repository/resourceinfotype_model/'.format(DJANGO_BASE)
 
+
 class StatusWorkflowTest(TestCase):
 
     resource_id = None

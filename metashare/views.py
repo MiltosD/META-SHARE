@@ -1,8 +1,7 @@
 import logging
 
 from django.contrib.auth.views import login as LOGIN, logout as LOGOUT
-from django.shortcuts import render_to_response
-from django.template import RequestContext
+from django.shortcuts import render
 
 from metashare.repository.models import resourceInfoType_model
 from metashare.settings import LOG_HANDLER
@@ -22,8 +21,7 @@ def frontpage(request):
         storage_object__publication_status=PUBLISHED,
         storage_object__deleted=False).count()
     dictionary = {'title': 'Welcome to META-SHARE!', 'resources': lr_count}
-    return render_to_response('frontpage.html', dictionary,
-      context_instance=RequestContext(request))
+    return render(request, 'frontpage.html', dictionary)
 
 
 def login(request, template_name):

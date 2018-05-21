@@ -2,6 +2,7 @@ from django import forms
 from django.contrib import admin, messages
 from django.contrib.admin.options import csrf_protect_m
 from django.contrib.auth.models import Permission, Group, User
+from django.contrib.auth import get_permission_codename
 from django.db import transaction
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
@@ -482,15 +483,15 @@ class EditorGroupManagersAdmin(admin.ModelAdmin):
         opts = resourceInfoType_model._meta
         result.append(Permission.objects.filter(
                 content_type__app_label=opts.app_label,
-                codename=opts.get_delete_permission())[0])
+                codename=get_permission_codename('delete', opts)))
         # add editor group application request change/delete permission
         opts = EditorGroupApplication._meta
         result.append(Permission.objects.filter(
                 content_type__app_label=opts.app_label,
-                codename=opts.get_change_permission())[0])
+                codename=get_permission_codename('change', opts)))
         result.append(Permission.objects.filter(
                 content_type__app_label=opts.app_label,
-                codename=opts.get_delete_permission())[0])
+                codename=get_permission_codename('delete', opts)))
         return result
 
     def add_user_to_editor_group_managers(self, request, queryset):
@@ -935,10 +936,10 @@ class OrganizationManagersAdmin(admin.ModelAdmin):
         opts = OrganizationApplication._meta
         result.append(Permission.objects.filter(
                 content_type__app_label=opts.app_label,
-                codename=opts.get_change_permission())[0])
+                codename=get_permission_codename('change', opts)))
         result.append(Permission.objects.filter(
                 content_type__app_label=opts.app_label,
-                codename=opts.get_delete_permission())[0])
+                codename=get_permission_codename('delete', opts)))
         return result
 
     def add_user_to_organization_managers(self, request, queryset):

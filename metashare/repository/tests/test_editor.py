@@ -21,7 +21,7 @@ from metashare.repository.editor.lookups import PersonLookup, ActorLookup, \
 from metashare.repository.models import languageDescriptionInfoType_model, \
     lexicalConceptualResourceInfoType_model, personInfoType_model,\
     resourceInfoType_model, distributionInfoType_model
-from metashare.settings import DJANGO_BASE, ROOT_PATH, LOG_HANDLER
+from metashare.settings import DJANGO_BASE, ROOT_PATH, LOG_HANDLER, DJANGO_URL
 from metashare.storage.models import PUBLISHED, INGESTED, INTERNAL, REMOTE, \
     StorageObject
 from selectable.views import get_lookup
@@ -52,7 +52,7 @@ COMPLETION_XML = '{}/repository/fixtures/completiontestfixture.xml'.format(ROOT_
 def _import_test_resource(editor_group=None, path=TESTFIXTURE_XML,
                           pub_status=INGESTED):
     resource = test_utils.import_xml(path)
-    if not editor_group is None:
+    if editor_group is not None:
         resource.editor_groups.add(editor_group)
         resource.save()
     resource.storage_object.publication_status = pub_status
@@ -75,7 +75,7 @@ class EditorTest(TestCase):
     testfixture2 = None
     testfixture3 = None
     testfixture4 = None
-    
+
     def setUp(self):
         """
         set up test users with and without staff permissions.
@@ -88,7 +88,7 @@ class EditorTest(TestCase):
 
         EditorTest.test_editor_group = EditorGroup.objects.create(
                                                     name='test_editor_group')
-        
+
         EditorTest.test_editor_group_manager = \
             EditorGroupManagers.objects.create(name='test_editor_group_manager',
                                     managed_group=EditorTest.test_editor_group)
@@ -99,7 +99,7 @@ class EditorTest(TestCase):
           'secret')
         staffuser.is_staff = True
         staffuser.save()
-        
+
         User.objects.create_user('normaluser', 'normal@example.com', 'secret')
 
         editoruser = test_utils.create_editor_user('editoruser',
@@ -125,28 +125,28 @@ class EditorTest(TestCase):
             'username': 'normaluser',
             'password': 'secret',
         }
-        
+
         EditorTest.editor_login = {
             REDIRECT_FIELD_NAME: ADMINROOT,
             LOGIN_FORM_KEY: 1,
             'username': 'editoruser',
             'password': 'secret',
         }
-        
+
         EditorTest.manager_login = {
             REDIRECT_FIELD_NAME: ADMINROOT,
             LOGIN_FORM_KEY: 1,
             'username': 'manageruser',
             'password': 'secret',
         }
-        
+
         EditorTest.superuser_login = {
             REDIRECT_FIELD_NAME: ADMINROOT,
             LOGIN_FORM_KEY: 1,
             'username': 'superuser',
             'password': 'secret',
         }
-        
+
         EditorTest.testfixture = _import_test_resource(
                                                 EditorTest.test_editor_group)
         # second resource which is only visible by the superuser
@@ -182,7 +182,7 @@ class EditorTest(TestCase):
         client = test_utils.get_client_with_user_logged_in(EditorTest.editor_login)
         response = client.get(ADMINROOT+'repository/')
         self.assertContains(response, 'Repository administration')
-       
+
     def test_staff_cannot_see_model_list(self):
         client = test_utils.get_client_with_user_logged_in(EditorTest.staff_login)
         response = client.get(ADMINROOT+'repository/')
@@ -215,8 +215,8 @@ class EditorTest(TestCase):
             languageDescriptionInfoType_model,
             lexicalConceptualResourceInfoType_model,
         )
-        
-        
+
+
         # Make sure admin.site.register() is actually executed:
         # pylint: disable-msg=W0612
         import metashare.repository.admin
@@ -292,7 +292,7 @@ class EditorTest(TestCase):
             msg_prefix='a manager user should see the "delete" action')
         self.assertNotContains(response, 'value="add_group">Add editor groups',
             msg_prefix='a manager user must not see the "add groups" action')
-        self.assertNotContains(response, 
+        self.assertNotContains(response,
             'value="remove_group">Remove editor groups from selected',
             msg_prefix='a manager user must not see the "remove groups" action')
         self.assertNotContains(response, 'Add owners',
@@ -316,7 +316,7 @@ class EditorTest(TestCase):
             msg_prefix='a superuser should see the "delete" action')
         self.assertContains(response, 'value="add_group">Add editor groups',
             msg_prefix='a superuser should see the "add groups" action')
-        self.assertContains(response, 
+        self.assertContains(response,
             'value="remove_group">Remove editor groups from selected',
             msg_prefix='a superuser should see the "remove groups" action')
         self.assertContains(response, 'Add owners',
@@ -377,19 +377,19 @@ class EditorTest(TestCase):
         xmlfile = open(TESTFIXTURE_XML)
         response = client.post(ADMINROOT+'upload_xml/', {'description': xmlfile, 'uploadTerms':'on' }, follow=True)
         self.assertContains(response, 'Successfully uploaded file')
-        
+
     def test_upload_broken_xml(self):
         client = test_utils.get_client_with_user_logged_in(EditorTest.editor_login)
         xmlfile = open(BROKENFIXTURE_XML)
         response = client.post(ADMINROOT+'upload_xml/', {'description': xmlfile, 'uploadTerms':'on' }, follow=True)
         self.assertContains(response, 'Import failed', msg_prefix='response: {0}'.format(response))
-        
+
     def test_upload_single_xml_unchecked(self):
         client = test_utils.get_client_with_user_logged_in(EditorTest.editor_login)
         xmlfile = open(TESTFIXTURE_XML)
         response = client.post(ADMINROOT+'upload_xml/', {'description': xmlfile }, follow=True)
         self.assertFormError(response, 'form', 'uploadTerms', 'This field is required.')
-    
+
     def test_upload_zip(self):
         client = test_utils.get_client_with_user_logged_in(EditorTest.editor_login)
         xmlfile = open(TESTFIXTURES_ZIP, 'rb')
@@ -407,13 +407,13 @@ class EditorTest(TestCase):
         response = client.post(ADMINROOT+'upload_xml/', {'description': xmlfile, 'uploadTerms':'on' }, follow=True)
         self.assertContains(response, 'Successfully uploaded 1 resource descriptions')
         self.assertContains(response, 'Import failed for 1 files')
-        
+
     def test_identification_is_inline(self):
         client = test_utils.get_client_with_user_logged_in(EditorTest.editor_login)
         response = client.get('{}repository/resourceinfotype_model/{}/'.format(ADMINROOT, EditorTest.testfixture.id))
         # Resource name is a field of identification, so if this is present, identification is shown inline:
         self.assertContains(response, "Resource name:", msg_prefix='Identification is not shown inline')
-        
+
     def test_one2one_usage_is_hidden(self):
         """
         Asserts that a recommended OneToOneField referring to models that
@@ -492,7 +492,7 @@ class EditorTest(TestCase):
         client = test_utils.get_client_with_user_logged_in(EditorTest.superuser_login)
         response = client.get(ADMINROOT+'repository/resourceinfotype_model/')
         self.assertContains(response, '4 Resources')
-        
+
     def test_myresources_list(self):
         client = test_utils.get_client_with_user_logged_in(EditorTest.editor_login)
         response = client.get(ADMINROOT+'repository/resourceinfotype_model/my/')
@@ -512,23 +512,23 @@ class EditorTest(TestCase):
         editoruser = User.objects.get(username='editoruser')
         self.assertFalse(editoruser.has_perm('repository.delete_actorinfotype_model'))
 
-    def test_can_edit_resource_master_copy(self):        
+    def test_can_edit_resource_master_copy(self):
         client = test_utils.get_client_with_user_logged_in(EditorTest.editor_login)
         resource = _import_test_resource(EditorTest.test_editor_group)
         resource.storage_object.master_copy = True
         resource.storage_object.save()
         response = client.get('{}repository/resourceinfotype_model/{}/'
                               .format(ADMINROOT, resource.id))
-        self.assertContains(response, "Change Resource")        
+        self.assertContains(response, "Change Resource")
         self.assertContains(response, "Italian TTS Speech Corpus")
-        
-    def test_can_edit_reusable_entity_master_copy(self):        
+
+    def test_can_edit_reusable_entity_master_copy(self):
         client = test_utils.get_client_with_user_logged_in(EditorTest.editor_login)
         _import_test_resource(EditorTest.test_editor_group)
         response = client.get('{}repository/personinfotype_model/{}/'
                               .format(ADMINROOT, personInfoType_model.objects.all()[0].id))
-        self.assertContains(response, "Change Person")    
-    
+        self.assertContains(response, "Change Person")
+
     def test_editor_can_change_own_resource_and_parts(self):
         """
         Verifies that the editor user can change his own resources and parts
@@ -735,6 +735,7 @@ class EditorTest(TestCase):
         self.assertContains(response, 'Are you sure?', msg_prefix=
             'expected the superuser to be allowed to delete manager')
 
+
 class LookupTest(TestCase):
     """
     Test the lookup functionalities
@@ -743,7 +744,7 @@ class LookupTest(TestCase):
     editor_login = None
     testfixture = None
     client = None
-    
+
     def setUp(self):
         """
         set up test editor user with staff permissions.
@@ -755,7 +756,7 @@ class LookupTest(TestCase):
         test_utils.setup_test_storage()
 
         test_editor_group = EditorGroup.objects.create(name='test_editor_group')
-        
+
         EditorGroupManagers.objects.create(name='test_editor_group_manager',
           managed_group=test_editor_group)
 
@@ -768,7 +769,7 @@ class LookupTest(TestCase):
             'username': 'editoruser',
             'password': 'secret',
         }
-        
+
         LookupTest.testfixture = _import_test_resource(test_editor_group, COMPLETION_XML)
 
         LookupTest.client = test_utils.get_client_with_user_logged_in(LookupTest.editor_login)
@@ -844,7 +845,7 @@ class LookupTest(TestCase):
         response = LookupTest.client.get(reverse(get_lookup, args=(force_unicode(lookup.name()),)), {'term': test_term})
         self.assertContains(response, 'Evaluations and Language Resources Distribution Agency',
             msg_prefix='a superuser must see the lookup for Organization.')
-            
+
     def test_editor_autocompletion_for_targetresource(self):
         """
         Verifies that the auto-completion works for TargetResourceLookup.
@@ -871,7 +872,7 @@ class DataUploadTests(TestCase):
     testfixture2 = None
     testfixture3 = None
     testfixture4 = None
-    
+
     def setUp(self):
         test_utils.set_index_active(False)
 
@@ -1041,6 +1042,7 @@ class DataUploadTests(TestCase):
         self.assertIn(response.status_code, (403, 404), "expected that an " \
             "editor must not upload resource data to invisible resources")
 
+
 class DestructiveTests(TestCase):
     """
     Test case for tests that are in some way 'destructive' with regard to the
@@ -1049,7 +1051,7 @@ class DestructiveTests(TestCase):
     This test case is separate from the `EditorTest` above as it requires setup
     and teardown methods per test.
     """
-    
+
     # static variables to be initialized in setUpClass():
     superuser_login = None
     editor_login = None
@@ -1057,7 +1059,7 @@ class DestructiveTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        
+
         LOGGER.info("running '{}' tests...".format(cls.__name__))
 
         # login POST dict
@@ -1396,7 +1398,7 @@ class DestructiveTests(TestCase):
         response = client.get('{}repository/resourceinfotype_model/'.format(ADMINROOT))
         self.assertNotContains(response, 'editoruser', msg_prefix=
             'expected the editor group to be removed from the resources')
-        
+
     def test_deleted_editor_group_is_removed_from_all_relevant_users(self):
         """
         Verifies that an editor group is removed from all relevant users
@@ -1467,7 +1469,7 @@ class DestructiveTests(TestCase):
         response = client.get('{}auth/user/{}/'.format(ADMINROOT, manageruser.id))
         self.assertNotContains(response, 'manageruser</option>', msg_prefix=
             'expected the editor group manager to be removed from the users')
-        
+
     def test_delete_editor_group_remove_from_all_its_managing_groups(self):
         """
         Verifies that when an editor group is removed, all its managing groups are removed
@@ -1478,7 +1480,7 @@ class DestructiveTests(TestCase):
         response = client.get('{}accounts/editorgroupmanagers/'.format(ADMINROOT))
         self.assertNotContains(response, 'editoruser', msg_prefix=
             'expected the editor group manager to be removed when its editor group is removed')
-    
+
     def test_cannot_edit_resource_non_master_copy(self):
         client = test_utils.get_client_with_user_logged_in(self.editor_login)
         resource = _import_test_resource(self.test_editor_group)
@@ -1489,7 +1491,7 @@ class DestructiveTests(TestCase):
         self.assertContains(response, "You will now be redirected to the " \
             "META-SHARE node where the resource")
         self.assertContains(response, "You will now be redirected")
-        
+
     def test_cannot_edit_reusable_entity_non_master_copy(self):
         client = test_utils.get_client_with_user_logged_in(self.editor_login)
         _import_test_resource(self.test_editor_group)
@@ -1503,11 +1505,11 @@ class DestructiveTests(TestCase):
     def test_editor_user_cannot_see_deleted_resource(self):
         client = test_utils.get_client_with_user_logged_in(self.editor_login)
         self._test_user_cannot_see_deleted_resource(client)
-        
+
     def test_super_user_cannot_see_deleted_resource(self):
         client = test_utils.get_client_with_user_logged_in(self.superuser_login)
         self._test_user_cannot_see_deleted_resource(client)
-        
+
     def _test_user_cannot_see_deleted_resource(self, client):
         response = client.get(ADMINROOT+'repository/resourceinfotype_model/')
         self.assertContains(response, '1 Resource')
@@ -1515,11 +1517,11 @@ class DestructiveTests(TestCase):
         self.testfixture.storage_object.save()
         response = client.get(ADMINROOT+'repository/resourceinfotype_model/')
         self.assertContains(response, '0 Resources')
-        
+
     def test_editor_user_cannot_edit_deleted_resource(self):
         client = test_utils.get_client_with_user_logged_in(self.editor_login)
         self._test_user_cannot_edit_deleted_resource(client)
-        
+
     def test_super_user_cannot_edit_deleted_resource(self):
         client = test_utils.get_client_with_user_logged_in(self.superuser_login)
         self._test_user_cannot_edit_deleted_resource(client)
@@ -1537,21 +1539,21 @@ class DestructiveTests(TestCase):
         #Turn off DEBUG
         settings.DEBUG = False
         self.assertContains(response, "Resource object with primary key u&#39;1&#39; does not exist.", status_code=404)
-        
+
     def test_editor_user_cannot_export_deleted_resource(self):
         client = test_utils.get_client_with_user_logged_in(self.editor_login)
         self._test_user_cannot_export_deleted_resource(client)
-        
+
     def test_super_user_cannot_export_deleted_resource(self):
         client = test_utils.get_client_with_user_logged_in(self.superuser_login)
         self._test_user_cannot_export_deleted_resource(client)
-    
+
     def _test_user_cannot_export_deleted_resource(self, client):
         response = client.get(
           ADMINROOT+'repository/resourceinfotype_model/{}/export-xml/'.format(self.testfixture.id), follow=True)
         self.assertEquals(200, response.status_code)
         self.assertEquals('text/html; charset=utf-8', response.__getitem__('Content-Type'))
-        self.assertEquals('attachment; filename=resource-{}.xml'.format(self.testfixture.id), 
+        self.assertEquals('attachment; filename=resource-{}.xml'.format(self.testfixture.id),
           response.__getitem__('Content-Disposition'))
         self.testfixture.storage_object.deleted = True
         self.testfixture.storage_object.save()
@@ -1562,11 +1564,11 @@ class DestructiveTests(TestCase):
     def test_editor_user_cannot_browse_deleted_resource(self):
         client = test_utils.get_client_with_user_logged_in(self.editor_login)
         self._test_user_cannot_browse_deleted_resource(client)
-        
+
     def test_super_user_cannot_browse_deleted_resource(self):
         client = test_utils.get_client_with_user_logged_in(self.superuser_login)
         self._test_user_cannot_browse_deleted_resource(client)
-    
+
     def _test_user_cannot_browse_deleted_resource(self, client):
         response = client.get('/{0}repository/search/'.format(DJANGO_BASE), follow=True)
         self.assertContains(response, '1 Language Resource')
@@ -1574,15 +1576,15 @@ class DestructiveTests(TestCase):
         self.testfixture.storage_object.save()
         response = client.get('/{0}repository/search/'.format(DJANGO_BASE), follow=True)
         self.assertContains(response, '0 Language Resources')
-        
+
     def test_editor_user_cannot_search_deleted_resource(self):
         client = test_utils.get_client_with_user_logged_in(self.editor_login)
         self._test_user_cannot_search_deleted_resource(client)
-        
+
     def test_super_user_cannot_search_deleted_resource(self):
         client = test_utils.get_client_with_user_logged_in(self.superuser_login)
         self._test_user_cannot_search_deleted_resource(client)
-    
+
     def _test_user_cannot_search_deleted_resource(self, client):
         response = client.get('/{0}repository/search/'.format(DJANGO_BASE),
           follow=True, data={'q': 'italian'})
@@ -1592,7 +1594,7 @@ class DestructiveTests(TestCase):
         response = client.get('/{0}repository/search/'.format(DJANGO_BASE),
           follow=True, data={'q': 'reveal'})
         self.assertContains(response, 'No results were found')
-        
+
     def test_reimporting_deleted_resource_unsets_deleted_flag(self):
         # one resource in db
         self.assertEqual(len(StorageObject.objects.all()), 1)
@@ -1611,7 +1613,7 @@ class DestructiveTests(TestCase):
         # reimport the same resource
         self.testfixture = _import_test_resource(pub_status=PUBLISHED)
         # still only one resource in db
-        self.assertEqual(len(StorageObject.objects.all()), 1)   
+        self.assertEqual(len(StorageObject.objects.all()), 1)
         self.assertEqual(len(resourceInfoType_model.objects.all()), 1)
         # but it is undeleted now
         self.assertFalse(self.testfixture.storage_object.deleted)
@@ -1624,11 +1626,11 @@ class EditorGroupApplicationTests(TestCase):
     """
     Test case for the user application to one or several Editors of various model instances.
     """
-    
+
     @classmethod
     def setUpClass(cls):
         LOGGER.info("running '{}' tests...".format(cls.__name__))
-        
+
     @classmethod
     def tearDownClass(cls):
         LOGGER.info("finished '{}' tests".format(cls.__name__))
@@ -1769,7 +1771,7 @@ class EditorGroupApplicationTests(TestCase):
         new_reg = EditorGroupApplication(user=User.objects.get(username='normaluser'),
             editor_group=self.test_editor_group)
         new_reg.save()
-        response = client.get('{}accounts/editorgroupapplication/{}/'.format(ADMINROOT, new_reg.pk))
+        response = client.get('/editor/accounts/editorgroupapplication/{}/'.format(new_reg.pk))
         self.assertContains(response, 'normaluser</option>', msg_prefix=
             'expected a superuser to be able to modify an application.')
 
@@ -1804,7 +1806,7 @@ class EditorGroupApplicationTests(TestCase):
           {'editor_group': self.test_editor_group.pk}, follow=True)
         self.assertNotContains(response, 'You have successfully added default editor group "{}".'.format(self.test_editor_group),
           msg_prefix='expected the system to set an editor group as default.')
-        
+
     def test_user_can_remove_default_group(self):
         """
         Verifies that a user can remove an editor group from the default list
@@ -1817,7 +1819,7 @@ class EditorGroupApplicationTests(TestCase):
           {'editor_group': []}, follow=True)
         self.assertNotContains(response, 'You have successfully removed default editor group "{}".'.format(self.test_editor_group),
           msg_prefix='expected the system to remove a default editor group.')
-        
+
 
 class OrganizationApplicationTests(TestCase):
     """
@@ -1826,11 +1828,11 @@ class OrganizationApplicationTests(TestCase):
     @classmethod
     def setUpClass(cls):
         LOGGER.info("running '{}' tests...".format(cls.__name__))
-        
+
     @classmethod
     def tearDownClass(cls):
         LOGGER.info("finished '{}' tests".format(cls.__name__))
-        
+
     def setUp(self):
         """
         Sets up test users with and without staff permissions.
@@ -1992,19 +1994,19 @@ class OrganizationApplicationTests(TestCase):
                 'selected="selected">normaluser</option>', msg_prefix=
             'expected an organization manager not to be able to modify an application.')
 
+
 class BreadcrumbTests(TestCase):
     """
     Test case for the display of some manually added breadcrumbs in the back office.
     """
-
     @classmethod
     def setUpClass(cls):
         LOGGER.info("running '{}' tests...".format(cls.__name__))
-        
+
     @classmethod
     def tearDownClass(cls):
         LOGGER.info("finished '{}' tests".format(cls.__name__))
-        
+
     def setUp(self):
         """
         Sets up test users.
@@ -2047,7 +2049,7 @@ class BreadcrumbTests(TestCase):
             "<div class=\"breadcrumbs\">\n    <a href=\"../../\">Home</a> &rsaquo;\n\
     <a href=\"../\">Accounts</a> &rsaquo;\n    <a href=\"./\">Editor group</a> &rsaquo;\n\
     Add user\n  </div>", msg_prefix=
-                "expected to display a correct breadcrumb.")
+                "expected to display a correct breadcrumb.", html=True)
 
     def test_breadcrumb_in_remove_users_from_editor_group(self):
         """
@@ -2063,7 +2065,7 @@ class BreadcrumbTests(TestCase):
             "<div class=\"breadcrumbs\">\n    <a href=\"../../\">Home</a> &rsaquo;\n\
     <a href=\"../\">Accounts</a> &rsaquo;\n    <a href=\"./\">Editor group</a> &rsaquo;\n\
     Remove user\n  </div>", msg_prefix=
-                "expected to display a correct breadcrumb.")
+                "expected to display a correct breadcrumb.", html=True)
 
     def test_breadcrumb_in_add_users_to_editor_group_managers(self):
         """
@@ -2079,7 +2081,7 @@ class BreadcrumbTests(TestCase):
             "<div class=\"breadcrumbs\">\n    <a href=\"../../\">Home</a> &rsaquo;\n\
     <a href=\"../\">Accounts</a> &rsaquo;\n    <a href=\"./\">Editor group managers group</a> &rsaquo;\n\
     Add user\n  </div>", msg_prefix=
-                "expected to display a correct breadcrumb.")
+                "expected to display a correct breadcrumb.", html=True)
 
     def test_breadcrumb_in_remove_users_from_editor_group_managers(self):
         """
@@ -2095,7 +2097,7 @@ class BreadcrumbTests(TestCase):
             "<div class=\"breadcrumbs\">\n    <a href=\"../../\">Home</a> &rsaquo;\n\
     <a href=\"../\">Accounts</a> &rsaquo;\n    <a href=\"./\">Editor group managers group</a> &rsaquo;\n\
     Remove user\n  </div>", msg_prefix=
-                "expected to display a correct breadcrumb.")
+                "expected to display a correct breadcrumb.", html=True)
 
     def test_breadcrumb_in_add_users_to_organization(self):
         """
@@ -2111,7 +2113,7 @@ class BreadcrumbTests(TestCase):
             "<div class=\"breadcrumbs\">\n    <a href=\"../../\">Home</a> &rsaquo;\n\
     <a href=\"../\">Accounts</a> &rsaquo;\n    <a href=\"./\">Organization</a> &rsaquo;\n\
     Add user\n  </div>", msg_prefix=
-                "expected to display a correct breadcrumb.")
+                "expected to display a correct breadcrumb.", html=True)
 
     def test_breadcrumb_in_remove_users_from_organization(self):
         """
@@ -2127,7 +2129,7 @@ class BreadcrumbTests(TestCase):
             "<div class=\"breadcrumbs\">\n    <a href=\"../../\">Home</a> &rsaquo;\n\
     <a href=\"../\">Accounts</a> &rsaquo;\n    <a href=\"./\">Organization</a> &rsaquo;\n\
     Remove user\n  </div>", msg_prefix=
-                "expected to display a correct breadcrumb.")
+                "expected to display a correct breadcrumb.", html=True)
 
     def test_breadcrumb_in_add_users_to_organization_managers(self):
         """
@@ -2143,7 +2145,7 @@ class BreadcrumbTests(TestCase):
             "<div class=\"breadcrumbs\">\n    <a href=\"../../\">Home</a> &rsaquo;\n\
     <a href=\"../\">Accounts</a> &rsaquo;\n    <a href=\"./\">Organization managers group</a> &rsaquo;\n\
     Add user\n  </div>", msg_prefix=
-                "expected to display a correct breadcrumb.")
+                "expected to display a correct breadcrumb.", html=True)
 
     def test_breadcrumb_in_remove_users_from_organization_managers(self):
         """
@@ -2159,7 +2161,7 @@ class BreadcrumbTests(TestCase):
             "<div class=\"breadcrumbs\">\n    <a href=\"../../\">Home</a> &rsaquo;\n\
     <a href=\"../\">Accounts</a> &rsaquo;\n    <a href=\"./\">Organization managers group</a> &rsaquo;\n\
     Remove user\n  </div>", msg_prefix=
-                "expected to display a correct breadcrumb.")
+                "expected to display a correct breadcrumb.", html=True)
 
     def test_breadcrumb_in_add_editor_groups_to_resource(self):
         """
@@ -2175,7 +2177,7 @@ class BreadcrumbTests(TestCase):
             "<div class=\"breadcrumbs\">\n    <a href=\"../../\">Home</a> &rsaquo;\n\
     <a href=\"../\">Repository</a> &rsaquo;\n    <a href=\"./\">Resource</a> &rsaquo;\n\
     Add editor group\n  </div>", msg_prefix=
-                "expected to display a correct breadcrumb.")
+                "expected to display a correct breadcrumb.", html=True)
 
     def test_breadcrumb_in_remove_editor_groups_from_resource(self):
         """
@@ -2191,7 +2193,7 @@ class BreadcrumbTests(TestCase):
             "<div class=\"breadcrumbs\">\n    <a href=\"../../\">Home</a> &rsaquo;\n\
     <a href=\"../\">Repository</a> &rsaquo;\n    <a href=\"./\">Resource</a> &rsaquo;\n\
     Remove editor group\n  </div>", msg_prefix=
-                "expected to display a correct breadcrumb.")
+                "expected to display a correct breadcrumb.", html=True)
 
     def test_breadcrumb_in_add_owners_to_resource(self):
         """
@@ -2207,7 +2209,7 @@ class BreadcrumbTests(TestCase):
             "<div class=\"breadcrumbs\">\n    <a href=\"../../\">Home</a> &rsaquo;\n\
     <a href=\"../\">Repository</a> &rsaquo;\n    <a href=\"./\">Resource</a> &rsaquo;\n\
     Add owner\n  </div>", msg_prefix=
-                "expected to display a correct breadcrumb.")
+                "expected to display a correct breadcrumb.", html=True)
 
     def test_breadcrumb_in_remove_owners_from_resource(self):
         """
@@ -2223,7 +2225,7 @@ class BreadcrumbTests(TestCase):
             "<div class=\"breadcrumbs\">\n    <a href=\"../../\">Home</a> &rsaquo;\n\
     <a href=\"../\">Repository</a> &rsaquo;\n    <a href=\"./\">Resource</a> &rsaquo;\n\
     Remove owner\n  </div>", msg_prefix=
-                "expected to display a correct breadcrumb.")
+                "expected to display a correct breadcrumb.", html=True)
 
     def test_breadcrumb_in_mark_resource_as_deleted(self):
         """
@@ -2239,4 +2241,4 @@ class BreadcrumbTests(TestCase):
             "<div class=\"breadcrumbs\">\n    <a href=\"../../\">Home</a> &rsaquo;\n\
     <a href=\"../\">Repository</a> &rsaquo;\n    <a href=\"./\">Resource</a> &rsaquo;\n\
     Delete resource\n  </div>", msg_prefix=
-                "expected to display a correct breadcrumb.")
+                "expected to display a correct breadcrumb.", html=True)

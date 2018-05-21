@@ -113,8 +113,8 @@ class MetadataSyncTest(TestCase):
         editoruser = User.objects.create_user('editoruser', 'editor@example.com',
           'secret')
         editoruser.is_staff = True
-        globaleditors = Group.objects.get(name='globaleditors')
-        editoruser.groups.add(globaleditors)
+        globaleditors = Group.objects.get_or_create(name='globaleditors')
+        editoruser.groups.add(*globaleditors)
         editoruser.save()
 
 

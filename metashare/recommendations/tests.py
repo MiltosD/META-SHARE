@@ -173,7 +173,7 @@ class SimpleTogetherManagerTest(django.test.TestCase):
         except IntegrityError:
             # reset database connection; required for PostgreSQL
             from django import db
-            db.close_connection()
+            db.close_old_connections()
 
 
 class TogetherManagerTest(django.test.TestCase):
