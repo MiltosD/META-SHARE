@@ -7,7 +7,7 @@ django-selenium==0.9.8
 future==0.15.2
 httplib2==0.9.1
 lxml==3.4.2
-psycopg2==2.5.4
+psycopg2==2.7.4
 pycountry==1.12
 pygeoip==0.3.2
 pyparsing==1.5.7

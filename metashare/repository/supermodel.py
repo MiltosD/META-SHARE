@@ -7,6 +7,7 @@ from traceback import format_exc
 from xml.etree.ElementTree import Element, fromstring, tostring
 
 from django import db
+from django.contrib.postgres.fields import ArrayField
 from django.core.cache import cache
 from django.core.exceptions import ValidationError, ObjectDoesNotExist, \
     ImproperlyConfigured
@@ -17,12 +18,11 @@ from django.db.models.fields.related import ReverseManyToOneDescriptor, \
 
 import metashare.repository.models
 from metashare.repository.fields import MultiSelectField, MultiTextField, \
-    MetaBooleanField, DictField
+    MetaBooleanField, DictField, MultipleChoiceField
 from metashare.settings import LOG_HANDLER, \
     CHECK_FOR_DUPLICATE_INSTANCES
 from metashare.storage.models import MASTER
 from metashare.utils import SimpleTimezone, prettify_camel_case_string
-
 
 # Setup logging support.
 LOGGER = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ LOGGER.addHandler(LOG_HANDLER)
 # cfedermann: this prevents a bug with PostgreSQL databases and Django 1.3
 try:
     from django.db.backends.postgresql_psycopg2.base import DatabaseFeatures
+
     DatabaseFeatures.can_return_id_from_insert = True
 
 except ImproperlyConfigured:
@@ -42,10 +43,10 @@ RECOMMENDED = 3
 
 # template of a META-SHARE metadata XML schema URL
 SCHEMA_URL = 'http://www.meta-share.org/META-SHARE_XMLSchema/v{0}/' \
-  'META-SHARE-Resource.xsd'
+             'META-SHARE-Resource.xsd'
 
 METASHARE_ID_REGEXP = re.compile('<metashareId>.+</metashareId>',
-  re.I|re.S|re.U)
+                                 re.I | re.S | re.U)
 
 OBJECT_XML_CACHE = {}
 
@@ -59,11 +60,12 @@ def _remove_namespace_from_tags(element_tree):
     Removes any namespace information from the given element_tree instance.
     """
     element_tree.tag = element_tree.tag.split('}')[-1]
-    
+
     for child in element_tree.getchildren():
         _remove_namespace_from_tags(child)
-    
+
     return element_tree
+
 
 def _classify(class_name):
     """
@@ -74,6 +76,7 @@ def _classify(class_name):
 
     except NameError:
         return None
+
 
 def _make_choices_from_list(source_list):
     """
@@ -90,6 +93,7 @@ def _make_choices_from_list(source_list):
         _max_len = max(_max_len, len(value))
     return {'max_length': _max_len, 'choices': tuple(_choices)}
 
+
 def _make_choices_from_int_list(source_list):
     """
     Converts a given list of Integers to tuple choices.
@@ -101,7 +105,7 @@ def _make_choices_from_int_list(source_list):
     _choices = []
     for value in source_list:
         _choices.append((value, value))
-    return {'max_length': len(_choices)/10+1, 'choices': tuple(_choices)}
+    return {'max_length': len(_choices) / 10 + 1, 'choices': tuple(_choices)}
 
 
 class SchemaModel(models.Model):
@@ -113,7 +117,7 @@ class SchemaModel(models.Model):
     __schema_attrs__ = ()
     __schema_classes__ = {}
     __schema_parent__ = None
-    
+
     class Meta:
         """
         This is an abstract super class for all schema models.
@@ -202,8 +206,8 @@ class SchemaModel(models.Model):
         or a pseudo-field such as 'contactinfotype_model_set',
         obtain the best possible verbose name that we can give.
         """
-        #fields = cls._meta.get_field_by_name(fieldname)
-        #if fields:
+        # fields = cls._meta.get_field_by_name(fieldname)
+        # if fields:
         #    field = fields[0]
         #    return field.verbose_name
         try:
@@ -281,13 +285,13 @@ class SchemaModel(models.Model):
 
                 elif value.strip().lower() in ('false', 'no', '0'):
                     result = 'No'
-                
+
                 else:
                     LOGGER.error(u'Value {} not a valid MetaBooleanField ' \
-                      'choice for {}'.format(repr(value), field.name))
+                                 'choice for {}'.format(repr(value), field.name))
 
         elif isinstance(field, models.BooleanField) \
-          or isinstance(field, models.NullBooleanField):
+                or isinstance(field, models.NullBooleanField):
             if value.strip().lower() == 'true':
                 result = True
 
@@ -296,10 +300,10 @@ class SchemaModel(models.Model):
 
             else:
                 LOGGER.error(u'Value {} not a valid Boolean for {}'.format(
-                  repr(value), field.name))
+                    repr(value), field.name))
 
         elif isinstance(field, models.TextField) \
-          or isinstance(field, MultiTextField):
+                or isinstance(field, ArrayField):
             if value is None:
                 result = ''
 
@@ -309,7 +313,7 @@ class SchemaModel(models.Model):
         if metashare.repository.models.HTTPURI_VALIDATOR in field.validators \
                 and result is not None:
             result = urllib.quote(result.encode('utf8'),
-                r'''!#$%&'()*+,/:;=?@[]~''')
+                                  r'''!#$%&'()*+,/:;=?@[]~''')
 
         return result
 
@@ -323,14 +327,14 @@ class SchemaModel(models.Model):
         """
         if parent_dict is None:
             parent_dict = {}
-        
+
         if self.__schema_name__ == "SUBCLASSABLE":
             # pylint: disable-msg=E1101
             return self.as_subclass().export_to_elementtree(
-              pretty=pretty, parent_dict=parent_dict)
+                pretty=pretty, parent_dict=parent_dict)
 
         _root = Element(self.__schema_name__)
-        
+
         if pretty:
             try:
                 _root.attrib["pretty"] = self._meta.verbose_name
@@ -346,9 +350,9 @@ class SchemaModel(models.Model):
                 SCHEMA_VERSION
             _root.attrib['xmlns'] = SCHEMA_NAMESPACE
             _root.attrib['xmlns:xsi'] = "http://www.w3.org/2001/" \
-              "XMLSchema-instance"
+                                        "XMLSchema-instance"
             _root.attrib['xsi:schemaLocation'] = "{} {}" \
-              .format(SCHEMA_NAMESPACE, SCHEMA_URL.format(SCHEMA_VERSION))
+                .format(SCHEMA_NAMESPACE, SCHEMA_URL.format(SCHEMA_VERSION))
 
         # We first serialize all schema attributes.  For the moment, we just
         # assume that attributes are Strings only.  This holds for the v1.1
@@ -372,7 +376,7 @@ class SchemaModel(models.Model):
                 _model_set_value = _model_field.endswith('_model_set')
 
                 if not _model_set_value:
-                    _field = self._meta.get_field_by_name(_model_field)[0]
+                    _field = self._meta.get_field(_model_field)
                 else:
                     _field = None
 
@@ -382,7 +386,7 @@ class SchemaModel(models.Model):
                     _value = getattr(self, _model_field, [])
 
                 # Sort MultiSelectField values to allow comparison.
-                elif isinstance(_field, MultiSelectField):
+                elif isinstance(_field, MultipleChoiceField):
                     _value.sort()
 
                 # For DictFields, we convert the dict to a list of tuples.
@@ -413,7 +417,7 @@ class SchemaModel(models.Model):
 
                         if _clazz_name != _choice_name:
                             LOGGER.debug(u'Skipping choice value {}'.format(
-                              _xsd_name))
+                                _xsd_name))
                             continue
 
                         # If this is the correct sub class type, copy _clazz
@@ -461,7 +465,7 @@ class SchemaModel(models.Model):
 
                         else:
                             _sub_value = _sub_value.export_to_elementtree(
-                              pretty=pretty, parent_dict=parent_dict)
+                                pretty=pretty, parent_dict=parent_dict)
 
                             # We fix the sub value's tag as it may be "wrong".
                             # E.g., PersonInfo is sometimes called contactPerson.
@@ -526,15 +530,15 @@ class SchemaModel(models.Model):
         _fields.extend([x[1] for x in cls.__schema_attrs__])
         if hasattr(_object, 'copy_status'):
             _fields.append('copy_status')
-        
+
         if _object.__schema_name__ == "STRINGMODEL":
             _fields.append("value")
-        
+
         # Ensure that "back_to_" pointers are available for checking.
         for _field in cls._meta.fields:
             if isinstance(_field, related.ForeignKey):
                 if _field.name.startswith('back_to_') and \
-                  not _field.name in _fields:
+                        not _field.name in _fields:
                     _fields.append(_field.name)
 
         # We iterate over all model fields of the current _object.
@@ -552,7 +556,7 @@ class SchemaModel(models.Model):
             _value = getattr(_object, field_name, None)
 
             # Retrieve model field instance to allow type checking.
-            _field = _object._meta.get_field_by_name(field_name)[0]
+            _field = _object._meta.get_field(field_name)
 
             # For ManyToManyFields, compute the list of related objects.
             if isinstance(_field, related.ManyToManyField):
@@ -597,7 +601,7 @@ class SchemaModel(models.Model):
             # Otherwise, we print a message that we skip the current field.
             else:
                 LOGGER.debug(u'Skipping {0}={1} ({2})'.format(field_name,
-                  _value, type(_field)))
+                                                              _value, type(_field)))
 
         # Use **magic to create a constrained QuerySet from kwargs.
         query_set = cls.objects.filter(**kwargs).order_by('pk')
@@ -606,15 +610,15 @@ class SchemaModel(models.Model):
         if query_set.count() > 1:
             # We now know that there may exist at least one duplicate for the
             # given _object;  we have to check the related objects to be sure.
-            
+
             # Convert the current object into its serialised XML String and
             # remove any META-SHARE related id from this String.
             cache_key = '{}_{}'.format(type(_object).__name__.lower(),
-              _object._get_pk_val())
+                                       _object._get_pk_val())
 
             if OBJECT_XML_CACHE.has_key(cache_key):
                 _obj_value = OBJECT_XML_CACHE[cache_key]
-            
+
             else:
                 _obj_value = tostring(_object.export_to_elementtree())
                 _obj_value = METASHARE_ID_REGEXP.sub('', _obj_value)
@@ -629,7 +633,7 @@ class SchemaModel(models.Model):
 
                 # Convert candidate into XML String and remove META-SHARE id.
                 cache_key = '{}_{}'.format(type(_candidate).__name__.lower(),
-                  _candidate._get_pk_val())
+                                           _candidate._get_pk_val())
 
                 if OBJECT_XML_CACHE.has_key(cache_key):
                     _check = OBJECT_XML_CACHE[cache_key]
@@ -676,7 +680,7 @@ class SchemaModel(models.Model):
                 try:
                     LOGGER.debug(u'Deleting object {0}'.format(obj))
                     cache_key = '{}_{}'.format(type(obj).__name__.lower(),
-                      obj._get_pk_val())
+                                               obj._get_pk_val())
 
                     if OBJECT_XML_CACHE.has_key(cache_key):
                         OBJECT_XML_CACHE.pop(cache_key)
@@ -684,18 +688,18 @@ class SchemaModel(models.Model):
                     if obj.__schema_name__ == "resourceInfo":
                         storage_object = obj.storage_object
                         storage_object.delete()
-                    
-                    obj.delete()             
+
+                    obj.delete()
 
                 except ObjectDoesNotExist:
                     continue
-        
+
         return _objects
 
     # pylint: disable-msg=R0911
     @classmethod
     def import_from_elementtree(
-      cls, element_tree, cleanup=True, parent=None, copy_status=MASTER):
+            cls, element_tree, cleanup=True, parent=None, copy_status=MASTER):
         """
         Imports the given XML ElementTree into an instance of type cls.
 
@@ -706,15 +710,15 @@ class SchemaModel(models.Model):
         Returns (None, [], error_msg) in case of errors.
         """
         LOGGER.debug(u'parent: {0}'.format(parent))
-        
+
         # We ignore name space information in tags, hence we remove it.
         element_tree = _remove_namespace_from_tags(element_tree)
 
         # First, we make sure that the given element_tree has the right tag.
         if element_tree is None \
-          or element_tree.tag != cls.__schema_name__:
+                or element_tree.tag != cls.__schema_name__:
             _msg = u"Tags don't match: {}!={}".format(element_tree.tag,
-              cls.__schema_name__)
+                                                      cls.__schema_name__)
             LOGGER.error(_msg)
             return (None, [], _msg)
 
@@ -724,7 +728,7 @@ class SchemaModel(models.Model):
 
         # We also need to instantiate a new instance of this class type.
         _object = cls()
-        
+
         if hasattr(_object, 'copy_status'):
             # pylint: disable-msg=W0201
             _object.copy_status = copy_status
@@ -736,9 +740,9 @@ class SchemaModel(models.Model):
 
             try:
                 LOGGER.debug(u'Setting schema parent {0}={1}'.format(
-                  _foreign_key_name, parent))
+                    _foreign_key_name, parent))
 
-                _ = _object._meta.get_field_by_name(_foreign_key_name)[0]
+                _ = _object._meta.get_field(_foreign_key_name)
                 setattr(_object, _foreign_key_name, parent)
 
             except (models.FieldDoesNotExist, AttributeError) as _exc:
@@ -750,7 +754,7 @@ class SchemaModel(models.Model):
         for xsd_attr, _model_field, _not_used in cls.__schema_attrs__:
             # Get attribute value and field instance for this xsd_attr.
             _attr = element_tree.attrib.get(xsd_attr, None)
-            _field = _object._meta.get_field_by_name(_model_field)[0]
+            _field = _object._meta.get_field(_model_field)
 
             # Convert attribute value to its Python representation for field.
             _value = SchemaModel._xml_to_python(_attr, _field)
@@ -762,19 +766,17 @@ class SchemaModel(models.Model):
         # Iterate over all model fields for an cls instance.  These need to be
         # sorted so that any _set fields are processed at the end!
         _fields_before_sets = list(cls.__schema_fields__)
-
         # The following allows to sort all ManyToMany field instances to the
         # end of the list; this is required to ensure that all required fields
         # can be handled and filled before saving this instance for handling
         # the ManyToMany fields...
-        _fields_before_sets.sort(key=lambda x: x[2] == REQUIRED, reverse=True)
+        _fields_before_sets.sort(key=lambda _x: _x[2] == REQUIRED, reverse=True)
 
         _many_to_many_fields = []
         for _field in _fields_before_sets:
             if _field[1].endswith('_set'):
                 continue
-
-            _model_field = _object._meta.get_field_by_name(_field[1])[0]
+            _model_field = _object._meta.get_field(_field[1])
             if isinstance(_model_field, related.ManyToManyField):
                 _many_to_many_fields.append(_field)
                 _fields_before_sets.remove(_field)
@@ -800,24 +802,24 @@ class SchemaModel(models.Model):
                 if _object._get_pk_val() is None:
                     try:
                         LOGGER.debug(u'Saving parent object for {0}'.format(
-                          _model_field))
+                            _model_field))
                         _object.save()
 
                     except IntegrityError as _exc:
                         # reset database connection (required for PostgreSQL)
-                        db.close_connection()
+                        db.close_old_connections()
 
                         # pylint: disable-msg=E1101
                         _msg = u'Could not save {} object! ({})'.format(
-                          _object.__class__, _exc)
+                            _object.__class__, _exc)
                         LOGGER.error(_msg)
 
                         LOGGER.error(u'cls.__schema_parent__: {0}'.format(
-                          cls.__schema_parent__))
+                            cls.__schema_parent__))
                         LOGGER.error(u'parent: {0}'.format(parent))
                         if parent:
                             LOGGER.error(u'parent.__class__.__name__: ' \
-                              u'{0}'.format(parent.__class__.__name__))
+                                         u'{0}'.format(parent.__class__.__name__))
 
                         SchemaModel._cleanup(_created)
                         return (None, [], _msg)
@@ -832,13 +834,13 @@ class SchemaModel(models.Model):
                     _field = None
 
                 else:
-                    _field = _object._meta.get_field_by_name(_model_field)[0]
+                    _field = _object._meta.get_field(_model_field)
 
                 # The initial assumption is that duplicate objects should
                 # be deleted immediately;  this does not hold for OneToOne
                 # and OneToMany fields (where _parent is not None), only.
                 _delete_duplicate_objects = True
-                
+
                 if isinstance(_field, related.OneToOneField) or _parent:
                     _delete_duplicate_objects = False
 
@@ -846,7 +848,7 @@ class SchemaModel(models.Model):
                 if not len(_value.getchildren()):
                     _text = SchemaModel._xml_to_python(_value.text, _field)
                     LOGGER.debug(u'_value.tag: {}, _value.text: {}'.format(
-                      _value.tag, _text))
+                        _value.tag, _text))
 
                     # We skip empty, simple-typed elements.
                     if not _text:
@@ -861,18 +863,18 @@ class SchemaModel(models.Model):
 
                     elif _value.tag in cls.__schema_classes__.keys():
                         LOGGER.debug(u'_schema_classes__[{}] = {}'.format(
-                          _value.tag, cls.__schema_classes__[_value.tag]))
+                            _value.tag, cls.__schema_classes__[_value.tag]))
                         _sub_cls = _classify(
-                          cls.__schema_classes__[_value.tag])
+                            cls.__schema_classes__[_value.tag])
                         if _sub_cls.__schema_name__ == "STRINGMODEL":
                             LOGGER.debug(u'Creating STRINGMODEL {}.'.format(
-                              _text))
+                                _text))
                             _instance = _sub_cls()
                             _instance.value = _text
                             _instance.save()
 
                             _duplicates = _sub_cls._check_for_duplicates(
-                              _instance)
+                                _instance)
                             _was_duplicate = len(_duplicates) > 0
 
                             # Add current _instance instance to the _created
@@ -884,7 +886,7 @@ class SchemaModel(models.Model):
                                 # with the "original" object.
                                 if _delete_duplicate_objects:
                                     SchemaModel._cleanup([(_instance, 'D')],
-                                      only_remove_duplicates=True)
+                                                         only_remove_duplicates=True)
 
                                     # Replace _instance with "original".
                                     _instance = _duplicates[0]
@@ -906,7 +908,7 @@ class SchemaModel(models.Model):
                     # names to Django model classes inside __schema_classes__.
                     if not _value.tag in cls.__schema_classes__.keys():
                         _msg = u'Unsupported tag: {} not in {}'.format(
-                          _value.tag, cls.__schema_classes__.keys())
+                            _value.tag, cls.__schema_classes__.keys())
                         LOGGER.error(_msg)
 
                         # There has been an error during import hence we have
@@ -921,7 +923,7 @@ class SchemaModel(models.Model):
                     # Create a copy of this Element as we have to change its
                     # tag value which would modify the original ElementTree.
                     LOGGER.debug(u'Creating copy of {0} as it has to be ' \
-                      u'modified'.format(_value.tag))
+                                 u'modified'.format(_value.tag))
                     _value_copy = fromstring(tostring(_value))
                     _value = _value_copy
 
@@ -934,10 +936,10 @@ class SchemaModel(models.Model):
 
                     # Try to import the sub element from the current value.
                     LOGGER.debug(u'Trying to import sub object {0}'.format(
-                      _value.tag))
+                        _value.tag))
                     _sub_result = _sub_cls.import_from_elementtree(_value,
-                      cleanup=_delete_duplicate_objects, parent=_parent,
-                      copy_status=copy_status)
+                                                                   cleanup=_delete_duplicate_objects, parent=_parent,
+                                                                   copy_status=copy_status)
 
                     _sub_object = _sub_result[0]
                     _sub_created = _sub_result[1]
@@ -949,7 +951,7 @@ class SchemaModel(models.Model):
                     # perform cleanup and return an empty result.
                     if not _sub_object:
                         _msg = u'Sub object {} could not be imported!'.format(
-                          _value.tag)
+                            _value.tag)
                         LOGGER.error(_msg)
                         LOGGER.error(_sub_error)
                         SchemaModel._cleanup(_created)
@@ -969,7 +971,7 @@ class SchemaModel(models.Model):
 
             # Otherwise we need to save the values in the class instance.
             LOGGER.debug(u'Setting {0} ({1}) = {2}'.format(_model_field,
-              type(_field).__name__, [unicode(x) for x in _values]))
+                                                           type(_field).__name__, [unicode(x) for x in _values]))
 
             # If the model field is a ManyToManyField instance, we have to
             # ensure that the current _object is instantiated in the database as
@@ -984,23 +986,23 @@ class SchemaModel(models.Model):
 
                 except IntegrityError as _exc:
                     # reset database connection (required for PostgreSQL)
-                    db.close_connection()
+                    db.close_old_connections()
 
                     # pylint: disable-msg=E1101
                     _msg = u'Could not save {} object! ({})'.format(
-                      _object.__class__, _exc)
+                        _object.__class__, _exc)
                     LOGGER.error(_msg)
 
                     LOGGER.error(u'cls.__schema_parent__: {0}'.format(
-                      cls.__schema_parent__))
+                        cls.__schema_parent__))
                     LOGGER.error(u'parent: {0}'.format(parent))
                     if parent:
                         LOGGER.error(u'parent.__class__.__name__: {0}'.format(
-                          parent.__class__.__name__))
+                            parent.__class__.__name__))
                     LOGGER.error(u'_parent: {0}'.format(_parent))
                     if _parent:
                         LOGGER.error(u'_parent.__class__.__name__: {}'.format(
-                          _parent.__class__.__name__))
+                            _parent.__class__.__name__))
 
                     SchemaModel._cleanup(_created)
                     return (None, [], _msg)
@@ -1026,13 +1028,17 @@ class SchemaModel(models.Model):
                 setattr(_object, _model_field, _dict)
 
             # For MultiSelectField instances, we have to assign the list.
-            elif isinstance(_field, MultiSelectField):
-                setattr(_object, _model_field, _values)
+            elif isinstance(_field, MultipleChoiceField):
+                _model_setter = getattr(_object, _model_field)
+                # print _model_setter
+                for _value in _values:
+                    _model_setter.append(_value)
 
             # If the model field is a MultiTextField, we have to retrieve the
             # model field setter and append values to the field list.
-            elif isinstance(_field, MultiTextField):
+            elif isinstance(_field, ArrayField):
                 _model_setter = getattr(_object, _model_field)
+                # print _model_setter
                 for _value in _values:
                     _model_setter.append(_value)
 
@@ -1041,7 +1047,7 @@ class SchemaModel(models.Model):
             elif _field is not None:
                 if len(_values) != 1:
                     _msg = u'Single value required: {0}:{1}'.format(
-                      _model_field, _values)
+                        _model_field, _values)
                     LOGGER.error(_msg)
                     SchemaModel._cleanup(_created)
                     return (None, [], _msg)
@@ -1073,7 +1079,7 @@ class SchemaModel(models.Model):
                         tzone = SimpleTimezone(int(_parts.get('tz_hr')) * 60
                                                + int(_parts.get('tz_mn')))
                     _value = datetime.datetime(int(_parts['year']),
-                        int(_parts['month']), int(_parts['day']), tzinfo=tzone)
+                                               int(_parts['month']), int(_parts['day']), tzinfo=tzone)
                 else:
                     _value = _values[0]
                 setattr(_object, _model_field, _value)
@@ -1090,7 +1096,7 @@ class SchemaModel(models.Model):
             _was_duplicate = len(_duplicates) > 0
 
             LOGGER.debug(u'_object: {0}, _was_duplicate: {1}, ' \
-              'cleanup: {2}'.format(_object, _was_duplicate, cleanup))
+                         'cleanup: {2}'.format(_object, _was_duplicate, cleanup))
 
             # Add current _object instance to the _created list with correct
             # status: 'D' if it was a duplicate, 'C' otherwise.
@@ -1101,7 +1107,7 @@ class SchemaModel(models.Model):
                 # replace our _object instance with the "original" object.
                 if cleanup:
                     _created = SchemaModel._cleanup(_created,
-                      only_remove_duplicates=True)
+                                                    only_remove_duplicates=True)
 
                     # Replace _object instance with "original" object.
                     _object = _duplicates[0]
@@ -1111,9 +1117,9 @@ class SchemaModel(models.Model):
                 _created.append((_object, 'C'))
 
         except (IntegrityError, ValidationError) as _exc:
-            if isinstance(_exc, IntegrityError): 
+            if isinstance(_exc, IntegrityError):
                 # reset database connection (required for PostgreSQL)
-                db.close_connection()
+                db.close_old_connections()
 
             detail = u''
             if hasattr(_exc, 'message_dict'):
@@ -1126,17 +1132,17 @@ class SchemaModel(models.Model):
                     detail += u"'{}': {}".format(key, value)
             else:
                 detail = str(_exc)
-            
+
             _msg = u'Could not import <{}>! ({})'.format(element_tree.tag,
-              detail)
+                                                         detail)
             LOGGER.error(_msg)
 
             LOGGER.error(u'cls.__schema_parent__: {0}'.format(
-              cls.__schema_parent__))
+                cls.__schema_parent__))
             LOGGER.error(u'parent: {0}'.format(parent))
             if parent:
                 LOGGER.error(u'parent.__class__.__name__: {0}'.format(
-                  parent.__class__.__name__))
+                    parent.__class__.__name__))
 
             SchemaModel._cleanup(_created)
             return (None, [], _msg)
@@ -1169,7 +1175,7 @@ class SchemaModel(models.Model):
         Returns (None, [], error_msg) in case of errors.
         """
         return cls.import_from_elementtree(fromstring(element_string),
-          parent=parent, copy_status=copy_status)
+                                           parent=parent, copy_status=copy_status)
 
     def get_unicode(self, field_spec, separator):
         field_path = re.split(r'/', field_spec)
@@ -1182,28 +1188,28 @@ class SchemaModel(models.Model):
                        for xsd_name, _, _ in self.__schema_fields__):
                 return u''
             field_name = (field_name for xsd_name, field_name, _
-                    in self.__schema_fields__ if xsd_name == field_spec).next()
+                          in self.__schema_fields__ if xsd_name == field_spec).next()
             value = getattr(self, field_name, None)
             if field_name.endswith('_set'):
                 field_name = field_name[:-4]
             if not value:
                 return u'?'
-            model_field = self._meta.get_field_by_name(field_name)
+            model_field = self._meta.get_field(field_name)
             if isinstance(model_field[0], models.CharField) or \
-              isinstance(model_field[0], MultiSelectField):
+                    isinstance(model_field[0], MultipleChoiceField):
                 # see if it's an enum CharField with options and return the
                 # string instead of the option number
                 display = getattr(self,
-                  'get_{}_display'.format(field_spec), None)
+                                  'get_{}_display'.format(field_spec), None)
                 if display:
                     value = display()
                 return value
-            elif isinstance(model_field[0], MultiTextField):
+            elif isinstance(model_field[0], ArrayField):
                 return separator.join(value)
             elif isinstance(model_field[0], DictField):
                 return getattr(self, 'get_default_{}'.format(field_spec))()
             if hasattr(value, 'all') and \
-              hasattr(getattr(value, 'all'), '__call__'):
+                    hasattr(getattr(value, 'all'), '__call__'):
                 return separator.join(
                     [u'{}'.format(child) for child in value.all()] or u'?')
             else:
@@ -1212,27 +1218,27 @@ class SchemaModel(models.Model):
                 except TypeError:
                     pass
                 if (isinstance(model_field[0], models.DateField) or \
-                  isinstance(model_field[0], models.BooleanField) or \
-                  isinstance(model_field[0], models.IntegerField)):
+                            isinstance(model_field[0], models.BooleanField) or \
+                            isinstance(model_field[0], models.IntegerField)):
                     return u'{}'.format(value)
 
                 return u'*{}*'.format(value)
         else:
-            for xsd_name, field_name , _not_used in self.__schema_fields__:
+            for xsd_name, field_name, _not_used in self.__schema_fields__:
                 if xsd_name.startswith(field_spec):
                     values = getattr(self, field_name, None)
                     if not values:
                         return u''
                     if isinstance(values, SchemaModel):
                         return values.get_unicode_rec_(field_path[1:],
-                          separator)
+                                                       separator)
                     # these are multiple values, possibly a query set of django
                     if hasattr(values, 'all') and \
-                      hasattr(getattr(values, 'all'), '__call__'):
+                            hasattr(getattr(values, 'all'), '__call__'):
                         return separator.join([
-                          child.get_unicode_rec_(field_path[1:], separator) 
-                          for child in values.all()
-                        ])
+                                                  child.get_unicode_rec_(field_path[1:], separator)
+                                                  for child in values.all()
+                                                  ])
                     try:
                         return separator.join([u'{}'.format(value) for value in values])
                     except TypeError:
@@ -1255,7 +1261,7 @@ class SchemaModel(models.Model):
     def __unicode__(self):
         cache_key = '{}_{}'.format(self.__schema_name__, self._get_pk_val())
 
-        cached = cache.get(cache_key, None) # set to None for no caching
+        cached = cache.get(cache_key, None)  # set to None for no caching
         if cached is None:
             try:
                 # pylint: disable-msg=E1101
@@ -1266,9 +1272,9 @@ class SchemaModel(models.Model):
                 LOGGER.error(format_exc())
                 cached = u'<{} pk="{}>'.format(self.__schema_name__, self._get_pk_val())
 
-            cache.set(cache_key, cached) # comment this for no caching
+            cache.set(cache_key, cached)  # comment this for no caching
         return cached
-    
+
     def save(self, force_insert=False, force_update=False, using=None):
         '''
         Override the superclass method to trigger cache updating.
@@ -1276,7 +1282,6 @@ class SchemaModel(models.Model):
         super(SchemaModel, self).save(force_insert, force_update, using)
         cache_key = '{}_{}'.format(self.__schema_name__, self._get_pk_val())
         cache.delete(cache_key)
-
 
     def delete_deep(self, keep_stats=False):
         '''
@@ -1317,13 +1322,15 @@ class SchemaModel(models.Model):
             else:
                 # ignore keep_stats parameter for all other types
                 obj.delete()
-            
+
+
 class SubclassableModel(SchemaModel):
     """
     Generic superclass for all models that want to allow getting a
     subclass instance from a superclass table, e.g. via ForeignKey
     or ManyToManyField.
     """
+
     def get_class_name(self):
         return self.__class__.__name__
 
@@ -1335,7 +1342,7 @@ class SubclassableModel(SchemaModel):
             candidate_fieldname = subclass_name.lower()
             if hasattr(self, candidate_fieldname):
                 childinstance = getattr(self, candidate_fieldname)
-                return childinstance.as_subclass() # recursive
+                return childinstance.as_subclass()  # recursive
         return self
 
     def __unicode__(self):

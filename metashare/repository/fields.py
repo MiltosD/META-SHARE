@@ -1,4 +1,7 @@
 import base64
+
+from django.contrib.postgres.fields import ArrayField
+
 try:
     import cPickle as pickle
 except:
@@ -211,6 +214,32 @@ class MultiTextField(models.Field):
         except  :
             return [u'Exception for value {} ({})'.format(value, type(value))]
 
+
+class MultipleChoiceField(ArrayField):
+    """
+    A field that allows us to store an array of choices.
+
+    Uses Django 1.9's postgres ArrayField
+    and a MultipleChoiceField for its formfield.
+
+    Usage:
+
+        choices = ChoiceArrayField(models.CharField(max_length=...,
+                                                    choices=(...,)),
+                                   default=[...])
+    """
+
+    def formfield(self, **kwargs):
+        defaults = {
+          'choices': self.base_field.choices,
+          'help_text': self.help_text,
+          'label': capfirst(self.verbose_name),
+          'required': not self.blank,
+          'form_class': forms.MultipleChoiceField,
+        }
+        defaults.update(kwargs)
+        return super(ArrayField, self).formfield(**defaults)
+
 # pylint: disable-msg=W0201
 class MultiSelectField(models.Field):
     """
@@ -220,6 +249,8 @@ class MultiSelectField(models.Field):
     def from_db_value(self, value, expression, connection, context):
         if value is None:
             return value
+        print value
+        print pickle.loads(base64.b64decode(value))
         return pickle.loads(base64.b64decode(value))
 
     # Maps 1-digit hexadecimal numbers to their corresponding bit quadruples.

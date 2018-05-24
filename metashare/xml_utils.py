@@ -77,7 +77,6 @@ def import_from_string(xml_string, targetstatus, copy_status, owner_id=None):
     """
     from metashare.repository.models import resourceInfoType_model
     result = resourceInfoType_model.import_from_string(xml_string, copy_status=copy_status)
-    
     if not result[0]:
         msg = u''
         if len(result) > 2:
