@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
-from django.shortcuts import render_to_response, get_object_or_404, redirect
+from django.shortcuts import render_to_response, get_object_or_404, redirect, render
 from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
@@ -657,8 +657,8 @@ def view(request, resource_name=None, object_id=None):
             resource.storage_object.identifier)
 
     # Render and return template with the defined context.
-    ctx = RequestContext(request)
-    return render_to_response(template, context, context_instance=ctx)
+    # ctx = RequestContext(request)
+    return render(request, template, context)
 
 def tuple2dict(_tuple):
     '''

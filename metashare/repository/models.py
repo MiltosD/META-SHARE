@@ -3112,6 +3112,7 @@ class licenceInfoType_model(SchemaModel):
                   'ce text. LR depositors should, hence, carefully choose the values' \
                   ' of this field to match the licence chosen and users should caref' \
                   'ully read that licence before using the LR.',
+        blank=True,
         null=True,
     )
 

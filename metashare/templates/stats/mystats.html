@@ -34,7 +34,7 @@
 {% load get_icon %}
 
    {% for lr in data %} 
-    <tr class="{% cycle odd,even %}">
+    <tr class="{% cycle 'odd' 'even' %}">
         <td class=resourceName>
         <a href="{% url 'frontpage' %}editor/repository/resourceinfotype_model/{{ lr.0 }}/"><img src="{% static "admin/img/icon_changelink.gif" %}"></a>&nbsp;
         {% get_icon lr.2.resourceComponentType.as_subclass.resourceType %}&nbsp;
